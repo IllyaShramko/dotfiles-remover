@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// Этапы работы приложения.
-enum Stage {
+enum Stage: Equatable {
     case selecting          // выбор папки (drop zone + кнопка)
     case scanning           // идёт подсчёт файлов
     case confirming(FolderStats) // показана статистика, ждём решения пользователя
@@ -13,38 +13,57 @@ enum Stage {
 struct ContentView: View {
     @State private var stage: Stage = .selecting
     @State private var isDropTargeted = false
+    @State private var isHoveringDropZone = false
     @State private var selectedFolder: URL?
     @State private var lastRemovedCount: Int = 0
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("DotCleaner")
-                .font(.title2)
-                .bold()
+        VStack(spacing: 24) {
+            // MARK: - Header
+            headerView
 
-            Text("Удаляет скрытые файлы «._имя.jpeg», которые создаёт Reblum после авторетуши")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            switch stage {
-            case .selecting:
-                selectingView
-            case .scanning:
-                scanningView
-            case .confirming(let stats):
-                confirmingView(stats: stats)
-            case .cleaning:
-                cleaningView
-            case .done:
-                doneView
+            // MARK: - Main Content Switcher
+            VStack {
+                switch stage {
+                case .selecting:
+                    selectingView
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.96)), removal: .opacity))
+                case .scanning:
+                    scanningView
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                case .confirming(let stats):
+                    confirmingView(stats: stats)
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .bottom)), removal: .opacity))
+                case .cleaning:
+                    cleaningView
+                        .transition(.opacity)
+                case .done:
+                    doneView
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 1.04)), removal: .opacity))
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(.easeInOut(duration: 0.2), value: stageKey)
+        .padding(28)
+        .frame(minWidth: 500, minHeight: 420)
+        .background(
+            ZStack {
+                Color(NSColor.windowBackgroundColor)
+
+                LinearGradient(
+                    colors: [
+                        Color.accentColor.opacity(0.07),
+                        Color.purple.opacity(0.04),
+                        Color.clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+            .ignoresSafeArea()
+        )
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: stageKey)
     }
 
     // Ключ для анимации переключения этапов
@@ -58,163 +77,367 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Этап 1: выбор папки
+    // MARK: - Header Component
+    private var headerView: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentColor.opacity(0.2), Color.purple.opacity(0.15)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 56, height: 56)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
+                    )
+                    .shadow(color: Color.accentColor.opacity(0.15), radius: 8, x: 0, y: 4)
 
+                Image(systemName: "wand.and.stars")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.purple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+
+            VStack(spacing: 4) {
+                Text("DotCleaner")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+
+                Text("Удаление скрытых файлов «._имя.jpeg» после авторетуши Reblum")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+            }
+        }
+    }
+
+    // MARK: - Stage 1: выбор папки
     private var selectingView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 18) {
             dropZone
 
             Button {
                 selectFolder()
             } label: {
-                Label("Выбрать папку…", systemImage: "folder")
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("Выбрать папку…")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 24)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.85)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .shadow(color: Color.accentColor.opacity(0.25), radius: 6, x: 0, y: 3)
+                )
             }
-            .controlSize(.large)
+            .buttonStyle(.plain)
         }
     }
 
     private var dropZone: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6]))
-            .foregroundStyle(isDropTargeted ? Color.accentColor : Color.secondary.opacity(0.5))
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isDropTargeted ? Color.accentColor.opacity(0.1) : Color.clear)
-            )
-            .frame(height: 140)
-            .overlay(
-                VStack(spacing: 8) {
-                    Image(systemName: "tray.and.arrow.down")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
-                    Text("Перетащите сюда папку с фотографиями")
-                        .font(.callout)
+        ZStack {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    isDropTargeted
+                    ? Color.accentColor.opacity(0.12)
+                    : (isHoveringDropZone ? Color.secondary.opacity(0.08) : Color.secondary.opacity(0.04))
+                )
+
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(
+                    isDropTargeted ? Color.accentColor : Color.secondary.opacity(0.25),
+                    style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.5, dash: isDropTargeted ? [8, 4] : [6, 4])
+                )
+
+            VStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(isDropTargeted ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
+                        .frame(width: 56, height: 56)
+
+                    Image(systemName: isDropTargeted ? "arrow.down.doc.fill" : "tray.and.arrow.down.fill")
+                        .font(.system(size: 26, weight: .medium))
+                        .foregroundStyle(isDropTargeted ? Color.accentColor : Color.secondary)
+                        .scaleEffect(isDropTargeted ? 1.15 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isDropTargeted)
+                }
+
+                VStack(spacing: 4) {
+                    Text("Перетащите сюда папку")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(isDropTargeted ? Color.accentColor : Color.primary)
+
+                    Text("с фотографиями или файлами после ретуши")
+                        .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
-            )
-            .onDrop(of: [UTType.fileURL], isTargeted: $isDropTargeted) { providers in
-                handleDrop(providers: providers)
             }
+            .padding(20)
+        }
+        .frame(height: 165)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isHoveringDropZone = hovering
+            }
+        }
+        .onDrop(of: [UTType.fileURL], isTargeted: $isDropTargeted) { providers in
+            handleDrop(providers: providers)
+        }
     }
 
-    // MARK: - Этап 2: сканирование
-
+    // MARK: - Stage 2: сканирование
     private var scanningView: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .controlSize(.large)
-            Text("Сканирую папку…")
-                .foregroundStyle(.secondary)
+        VStack(spacing: 18) {
+            ZStack {
+                Circle()
+                    .stroke(Color.accentColor.opacity(0.2), lineWidth: 4)
+                    .frame(width: 60, height: 60)
+
+                ProgressView()
+                    .controlSize(.large)
+            }
+
+            VStack(spacing: 4) {
+                Text("Сканирование папки…")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                Text("Подсчёт скрытых системных файлов")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(height: 180)
     }
 
-    // MARK: - Этап 3: подтверждение
-
+    // MARK: - Stage 3: подтверждение
     private func confirmingView(stats: FolderStats) -> some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 18) {
             if let selectedFolder {
-                Label(selectedFolder.lastPathComponent, systemImage: "folder.fill")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    Image(systemName: "folder.fill")
+                        .foregroundStyle(Color.accentColor)
+                    Text(selectedFolder.lastPathComponent)
+                        .font(.system(size: 13, weight: .semibold))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color.accentColor.opacity(0.1))
+                        .overlay(Capsule().stroke(Color.accentColor.opacity(0.2), lineWidth: 1))
+                )
             }
 
-            VStack(spacing: 6) {
-                statRow(label: "Всего файлов:", value: "\(stats.totalFiles)")
-                statRow(label: "Скрытых дубликатов:", value: "\(stats.dotUnderscoreFiles)")
+            // Карточки статистики
+            HStack(spacing: 12) {
+                statCard(
+                    title: "Всего файлов",
+                    value: "\(stats.totalFiles)",
+                    icon: "doc.on.doc.fill",
+                    color: Color.blue
+                )
+
+                statCard(
+                    title: "Скрытые дубликаты",
+                    value: "\(stats.dotUnderscoreFiles)",
+                    icon: stats.dotUnderscoreFiles > 0 ? "trash.fill" : "checkmark.shield.fill",
+                    color: stats.dotUnderscoreFiles > 0 ? Color.orange : Color.green
+                )
             }
-            .padding(16)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
 
             if stats.dotUnderscoreFiles > 0 {
-                Text("Хотите удалить скрытые дубликаты?")
-                    .font(.headline)
+                VStack(spacing: 14) {
+                    Text("Хотите удалить скрытые дубликаты?")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
 
-                HStack(spacing: 12) {
-                    Button("Отменить") {
-                        cancelToSelecting()
-                    }
-                    .controlSize(.large)
+                    HStack(spacing: 12) {
+                        Button {
+                            cancelToSelecting()
+                        } label: {
+                            Text("Отмена")
+                                .font(.system(size: 13, weight: .medium))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
 
-                    Button("Удалить") {
-                        startCleaning(beforeCount: stats.dotUnderscoreFiles)
+                        Button {
+                            startCleaning(beforeCount: stats.dotUnderscoreFiles)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "sparkles")
+                                Text("Удалить (\(stats.dotUnderscoreFiles))")
+                            }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.red.opacity(0.9), Color.orange],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .shadow(color: Color.red.opacity(0.3), radius: 5, x: 0, y: 2)
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .controlSize(.large)
-                    .buttonStyle(.borderedProminent)
                 }
             } else {
-                Text("Скрытых дубликатов не найдено — папка уже чистая.")
-                    .foregroundStyle(.secondary)
+                VStack(spacing: 14) {
+                    Text("Скрытых дубликатов не найдено — папка уже чистая!")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
 
-                Button("Назад") {
-                    cancelToSelecting()
+                    Button("Назад") {
+                        cancelToSelecting()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                 }
-                .controlSize(.large)
             }
         }
     }
 
-    private func statRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .bold()
+    private func statCard(title: String, value: String, icon: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(color)
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.primary)
+                Text(title)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
         }
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(color.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(color.opacity(0.18), lineWidth: 1)
+                )
+        )
     }
 
-    // MARK: - Этап 4: выполнение очистки
-
+    // MARK: - Stage 4: выполнение очистки
     private var cleaningView: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .controlSize(.large)
-            Text("Удаляю скрытые дубликаты…")
-                .foregroundStyle(.secondary)
+        VStack(spacing: 18) {
+            ZStack {
+                Circle()
+                    .fill(Color.orange.opacity(0.15))
+                    .frame(width: 64, height: 64)
+
+                ProgressView()
+                    .controlSize(.large)
+            }
+
+            VStack(spacing: 4) {
+                Text("Удаление скрытых файлов…")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                Text("Выполняется очистка через системную утилиту dot_clean")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(height: 180)
     }
 
-    // MARK: - Этап 5: результат
-
+    // MARK: - Stage 5: результат
     private var doneView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 18) {
             if let errorMessage {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.red)
-                Text("Ошибка")
-                    .font(.headline)
-                Text(errorMessage)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                ZStack {
+                    Circle()
+                        .fill(Color.red.opacity(0.15))
+                        .frame(width: 64, height: 64)
+                    Image(systemName: "xmark.octagon.fill")
+                        .font(.system(size: 38, weight: .semibold))
+                        .foregroundStyle(.red)
+                }
+
+                VStack(spacing: 6) {
+                    Text("Произошла ошибка")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(.red)
+                    Text(errorMessage)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                }
             } else {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.green)
-                Text("Готово")
-                    .font(.headline)
-                Text(lastRemovedCount > 0
-                     ? "Удалено скрытых файлов: \(lastRemovedCount)"
-                     : "Скрытых файлов не найдено.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.15))
+                        .frame(width: 64, height: 64)
+                        .shadow(color: Color.green.opacity(0.3), radius: 10, x: 0, y: 4)
+
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 38, weight: .bold))
+                        .foregroundStyle(.green)
+                }
+
+                VStack(spacing: 6) {
+                    Text("Очистка завершена!")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+
+                    Text(lastRemovedCount > 0
+                         ? "Успешно удалено скрытых файлов: \(lastRemovedCount)"
+                         : "Скрытых файлов не обнаружено.")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            Button("Готово") {
+            Button {
                 cancelToSelecting()
+            } label: {
+                Text("Готово")
+                    .font(.system(size: 13, weight: .semibold))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 8)
             }
-            .controlSize(.large)
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
         }
     }
 
     // MARK: - Действия
-
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         guard let provider = providers.first else { return false }
 
@@ -281,3 +504,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+

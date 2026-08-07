@@ -1,7 +1,7 @@
 import Foundation
 
 /// Статистика по папке до удаления.
-struct FolderStats {
+struct FolderStats: Equatable {
     let totalFiles: Int
     let dotUnderscoreFiles: Int
 }
