@@ -3,7 +3,7 @@ name: Build DotCleaner.app
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   build:
