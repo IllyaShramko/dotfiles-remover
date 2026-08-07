@@ -1,0 +1,44 @@
+name: Build DotCleaner.app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build app
+        run: |
+          xcodebuild \
+            -project DotCleaner.xcodeproj \
+            -scheme DotCleaner \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Locate and zip .app
+        run: |
+          APP_PATH=$(find build/Build/Products/Release -name "*.app" -maxdepth 1)
+          echo "Found app at: $APP_PATH"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" DotCleaner.app.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DotCleaner-app
+          path: DotCleaner.app.zip
