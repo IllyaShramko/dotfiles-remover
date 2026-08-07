@@ -26,10 +26,16 @@ jobs:
             -scheme DotCleaner \
             -configuration Release \
             -derivedDataPath build \
-            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_ALLOWED=YES \
             build
+
+      - name: Ad-hoc code sign app
+        run: |
+          APP_PATH=$(find build/Build/Products/Release -name "*.app" -maxdepth 1)
+          echo "Signing app at: $APP_PATH"
+          codesign --force --deep --sign - "$APP_PATH"
 
       - name: Locate and zip .app
         run: |
