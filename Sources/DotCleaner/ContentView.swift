@@ -111,7 +111,7 @@ struct ContentView: View {
                 Text("DotCleaner")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
 
-                Text("Удаление скрытых файлов «._имя.jpeg» после авторетуши Reblum")
+                Text("Удаление скрытых файлов картинок («._*.jpg», «._*.png», «._*.jpeg») после авторетуши Reblum")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -249,7 +249,7 @@ struct ContentView: View {
             }
 
             // Карточки статистики
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 statCard(
                     title: "Всего файлов",
                     value: "\(stats.totalFiles)",
@@ -258,8 +258,17 @@ struct ContentView: View {
                 )
 
                 statCard(
+                    title: "Картинок",
+                    value: "\(stats.imageFiles)",
+                    subtitle: ".jpg, .png, .jpeg",
+                    icon: "photo.on.rectangle.angled",
+                    color: Color.purple
+                )
+
+                statCard(
                     title: "Скрытые дубликаты",
                     value: "\(stats.dotUnderscoreFiles)",
+                    subtitle: stats.imageDotUnderscoreFiles > 0 ? "Картинок: \(stats.imageDotUnderscoreFiles)" : nil,
                     icon: stats.dotUnderscoreFiles > 0 ? "trash.fill" : "checkmark.shield.fill",
                     color: stats.dotUnderscoreFiles > 0 ? Color.orange : Color.green
                 )
@@ -324,8 +333,8 @@ struct ContentView: View {
         }
     }
 
-    private func statCard(title: String, value: String, icon: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func statCard(title: String, value: String, subtitle: String? = nil, icon: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .semibold))
@@ -335,15 +344,22 @@ struct ContentView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.primary)
                 Text(title)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 9, weight: .regular))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(color.opacity(0.08))
