@@ -11,12 +11,17 @@ enum Stage: Equatable {
 }
 
 struct ContentView: View {
+    @EnvironmentObject private var languageManager: LanguageManager
     @State private var stage: Stage = .selecting
     @State private var isDropTargeted = false
     @State private var isHoveringDropZone = false
     @State private var selectedFolder: URL?
     @State private var lastRemovedCount: Int = 0
     @State private var errorMessage: String?
+
+    private var l10n: L10n {
+        languageManager.l10n
+    }
 
     var body: some View {
         VStack(spacing: 24) {
@@ -77,9 +82,51 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Language Picker Component
+    private var languagePicker: some View {
+        Menu {
+            ForEach(AppLanguage.allCases) { lang in
+                Button {
+                    languageManager.currentLanguage = lang
+                } label: {
+                    if languageManager.currentLanguage == lang {
+                        Label("\(lang.flagEmoji) \(lang.displayName)", systemImage: "checkmark")
+                    } else {
+                        Text("\(lang.flagEmoji) \(lang.displayName)")
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text(languageManager.currentLanguage.flagEmoji)
+                    .font(.system(size: 13))
+                Text(languageManager.currentLanguage == .english ? "EN" : "UA")
+                    .font(.system(size: 12, weight: .bold))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+            }
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                Capsule()
+                    .fill(Color.secondary.opacity(0.12))
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
     // MARK: - Header Component
     private var headerView: some View {
         VStack(spacing: 10) {
+            HStack {
+                Spacer()
+                languagePicker
+            }
+            .padding(.top, -10)
+            .padding(.bottom, -15)
+
             ZStack {
                 Circle()
                     .fill(
@@ -111,7 +158,7 @@ struct ContentView: View {
                 Text("DotCleaner")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
 
-                Text("Удаление скрытых файлов картинок («._*.jpg», «._*.png», «._*.jpeg») после авторетуши Reblum")
+                Text(l10n.headerSubtitle)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -131,7 +178,7 @@ struct ContentView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "folder.badge.plus")
                         .font(.system(size: 15, weight: .semibold))
-                    Text("Выбрать папку…")
+                    Text(l10n.selectFolderButton)
                         .font(.system(size: 14, weight: .semibold))
                 }
                 .foregroundStyle(.white)
@@ -183,11 +230,11 @@ struct ContentView: View {
                 }
 
                 VStack(spacing: 4) {
-                    Text("Перетащите сюда папку")
+                    Text(l10n.dropZoneTitle)
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
                         .foregroundStyle(isDropTargeted ? Color.accentColor : Color.primary)
 
-                    Text("с фотографиями или файлами после ретуши")
+                    Text(l10n.dropZoneSubtitle)
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -218,9 +265,9 @@ struct ContentView: View {
             }
 
             VStack(spacing: 4) {
-                Text("Сканирование папки…")
+                Text(l10n.scanningTitle)
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
-                Text("Подсчёт скрытых системных файлов")
+                Text(l10n.scanningSubtitle)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -251,14 +298,14 @@ struct ContentView: View {
             // Карточки статистики
             HStack(spacing: 10) {
                 statCard(
-                    title: "Всего файлов",
+                    title: l10n.cardTotalFiles,
                     value: "\(stats.totalFiles)",
                     icon: "doc.on.doc.fill",
                     color: Color.blue
                 )
 
                 statCard(
-                    title: "Картинок",
+                    title: l10n.cardImages,
                     value: "\(stats.imageFiles)",
                     subtitle: ".jpg, .png, .jpeg",
                     icon: "photo.on.rectangle.angled",
@@ -266,9 +313,9 @@ struct ContentView: View {
                 )
 
                 statCard(
-                    title: "Скрытые дубликаты",
+                    title: l10n.cardHiddenDuplicates,
                     value: "\(stats.dotUnderscoreFiles)",
-                    subtitle: stats.imageDotUnderscoreFiles > 0 ? "Картинок: \(stats.imageDotUnderscoreFiles)" : nil,
+                    subtitle: l10n.cardImagesSubtitle(stats.imageDotUnderscoreFiles),
                     icon: stats.dotUnderscoreFiles > 0 ? "trash.fill" : "checkmark.shield.fill",
                     color: stats.dotUnderscoreFiles > 0 ? Color.orange : Color.green
                 )
@@ -276,14 +323,14 @@ struct ContentView: View {
 
             if stats.dotUnderscoreFiles > 0 {
                 VStack(spacing: 14) {
-                    Text("Хотите удалить скрытые дубликаты?")
+                    Text(l10n.confirmPrompt)
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
 
                     HStack(spacing: 12) {
                         Button {
                             cancelToSelecting()
                         } label: {
-                            Text("Отмена")
+                            Text(l10n.cancelButton)
                                 .font(.system(size: 13, weight: .medium))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 8)
@@ -296,7 +343,7 @@ struct ContentView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "sparkles")
-                                Text("Удалить (\(stats.dotUnderscoreFiles))")
+                                Text(l10n.deleteButton(stats.dotUnderscoreFiles))
                             }
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white)
@@ -319,11 +366,11 @@ struct ContentView: View {
                 }
             } else {
                 VStack(spacing: 14) {
-                    Text("Скрытых дубликатов не найдено — папка уже чистая!")
+                    Text(l10n.folderCleanTitle)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.secondary)
 
-                    Button("Назад") {
+                    Button(l10n.backButton) {
                         cancelToSelecting()
                     }
                     .buttonStyle(.borderedProminent)
@@ -383,9 +430,9 @@ struct ContentView: View {
             }
 
             VStack(spacing: 4) {
-                Text("Удаление скрытых файлов…")
+                Text(l10n.cleaningTitle)
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
-                Text("Выполняется очистка через системную утилиту dot_clean")
+                Text(l10n.cleaningSubtitle)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -407,7 +454,7 @@ struct ContentView: View {
                 }
 
                 VStack(spacing: 6) {
-                    Text("Произошла ошибка")
+                    Text(l10n.errorTitle)
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(.red)
                     Text(errorMessage)
@@ -429,12 +476,12 @@ struct ContentView: View {
                 }
 
                 VStack(spacing: 6) {
-                    Text("Очистка завершена!")
+                    Text(l10n.doneTitle)
                         .font(.system(size: 17, weight: .bold, design: .rounded))
 
                     Text(lastRemovedCount > 0
-                         ? "Успешно удалено скрытых файлов: \(lastRemovedCount)"
-                         : "Скрытых файлов не обнаружено.")
+                         ? l10n.doneSubtitleSuccess(lastRemovedCount)
+                         : l10n.doneSubtitleEmpty)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -443,7 +490,7 @@ struct ContentView: View {
             Button {
                 cancelToSelecting()
             } label: {
-                Text("Готово")
+                Text(l10n.doneButton)
                     .font(.system(size: 13, weight: .semibold))
                     .padding(.horizontal, 28)
                     .padding(.vertical, 8)
@@ -477,7 +524,7 @@ struct ContentView: View {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "Выбрать"
+        panel.prompt = l10n.selectFolderButton.replacingOccurrences(of: "…", with: "")
 
         if panel.runModal() == .OK, let url = panel.url {
             beginScan(folder: url)
@@ -519,5 +566,7 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(LanguageManager.shared)
 }
+
 
