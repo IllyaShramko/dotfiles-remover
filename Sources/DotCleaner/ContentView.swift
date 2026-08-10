@@ -12,6 +12,7 @@ enum Stage: Equatable {
 
 struct ContentView: View {
     @EnvironmentObject private var languageManager: LanguageManager
+    @Environment(\.colorScheme) private var colorScheme
     @State private var stage: Stage = .selecting
     @State private var isDropTargeted = false
     @State private var isHoveringDropZone = false
@@ -127,32 +128,11 @@ struct ContentView: View {
             .padding(.top, -10)
             .padding(.bottom, -15)
 
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.accentColor.opacity(0.2), Color.purple.opacity(0.15)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 56, height: 56)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
-                    )
-                    .shadow(color: Color.accentColor.opacity(0.15), radius: 8, x: 0, y: 4)
-
-                Image(systemName: "wand.and.stars")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.accentColor, Color.purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
+            Image(colorScheme == .dark ? "LogoDark" : "LogoLight")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 56, height: 56)
+                .shadow(color: Color.accentColor.opacity(0.15), radius: 8, x: 0, y: 4)
 
             VStack(spacing: 4) {
                 Text("DotCleaner")
@@ -331,12 +311,20 @@ struct ContentView: View {
                             cancelToSelecting()
                         } label: {
                             Text(l10n.cancelButton)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.primary)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .fill(Color.secondary.opacity(0.12))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                                        )
+                                )
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
+                        .buttonStyle(.plain)
 
                         Button {
                             startCleaning(beforeCount: stats.hiddenFiles)
@@ -348,7 +336,7 @@ struct ContentView: View {
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                                     .fill(
@@ -397,12 +385,11 @@ struct ContentView: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
 
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.system(size: 9, weight: .regular))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+                // Резервируем место под подпись, чтобы все карточки были одинаковой высоты.
+                Text(subtitle ?? " ")
+                    .font(.system(size: 9, weight: .regular))
+                    .foregroundStyle(subtitle != nil ? .secondary : .clear)
+                    .lineLimit(1)
             }
         }
         .padding(12)
