@@ -44,7 +44,7 @@ enum DotCleanRunner {
         var entries: [DirectoryEntry] = []
 
         while let entryPtr = readdir(dir) {
-            var entry = entryPtr.pointee
+            let entry = entryPtr.pointee
 
             let name = withUnsafeBytes(of: entry.d_name) { ptr in
                 String(cString: ptr.baseAddress!.assumingMemoryBound(to: CChar.self))

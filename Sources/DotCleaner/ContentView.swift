@@ -385,10 +385,9 @@ struct ContentView: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
 
-                // Резервируем место под подпись, чтобы все карточки были одинаковой высоты.
                 Text(subtitle ?? " ")
                     .font(.system(size: 9, weight: .regular))
-                    .foregroundStyle(subtitle != nil ? .secondary : .clear)
+                    .foregroundStyle(subtitle != nil ? Color.secondary : Color.clear)
                     .lineLimit(1)
             }
         }

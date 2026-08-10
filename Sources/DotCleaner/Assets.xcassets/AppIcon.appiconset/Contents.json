@@ -1,0 +1,26 @@
+{
+  "images" : [
+    {
+      "filename" : "AppIcon_Light.png",
+      "idiom" : "mac",
+      "platform" : "macos",
+      "size" : "512x512"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "AppIcon_Dark.png",
+      "idiom" : "mac",
+      "platform" : "macos",
+      "size" : "512x512"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
