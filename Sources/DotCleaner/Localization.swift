@@ -45,9 +45,9 @@ struct L10n {
     var headerSubtitle: String {
         switch language {
         case .english:
-            return "Remove hidden image files (._*.jpg, ._*.png, ._*.jpeg) after Reblum auto-retouching"
+            return "Find and remove all hidden files (.DS_Store, ._*, .Thumbs.db, etc.) from a selected folder"
         case .ukrainian:
-            return "Видалення прихованих файлів зображень («._*.jpg», «._*.png», «._*.jpeg») після авторетуші Reblum"
+            return "Пошук та видалення всіх прихованих файлів (.DS_Store, ._*, .Thumbs.db тощо) з обраної папки"
         }
     }
 
@@ -72,9 +72,9 @@ struct L10n {
     var dropZoneSubtitle: String {
         switch language {
         case .english:
-            return "with photos or retouched files"
+            return "to scan for hidden files"
         case .ukrainian:
-            return "з фотографіями або файлами після ретуші"
+            return "для пошуку прихованих файлів"
         }
     }
 
@@ -114,12 +114,12 @@ struct L10n {
         }
     }
 
-    var cardHiddenDuplicates: String {
+    var cardHiddenFiles: String {
         switch language {
         case .english:
-            return "Hidden Duplicates"
+            return "Hidden Files"
         case .ukrainian:
-            return "Приховані дублікати"
+            return "Прихованих файлів"
         }
     }
 
@@ -127,18 +127,18 @@ struct L10n {
         guard count > 0 else { return nil }
         switch language {
         case .english:
-            return "Images: \(count)"
+            return "Hidden images: \(count)"
         case .ukrainian:
-            return "Зображень: \(count)"
+            return "Прихованих зображень: \(count)"
         }
     }
 
     var confirmPrompt: String {
         switch language {
         case .english:
-            return "Do you want to delete hidden duplicates?"
+            return "Do you want to delete hidden files?"
         case .ukrainian:
-            return "Бажаєте видалити приховані дублікати?"
+            return "Бажаєте видалити приховані файли?"
         }
     }
 
@@ -163,9 +163,9 @@ struct L10n {
     var folderCleanTitle: String {
         switch language {
         case .english:
-            return "No hidden duplicates found — folder is clean!"
+            return "No hidden files found — folder is clean!"
         case .ukrainian:
-            return "Прихованих дублікатів не знайдено — папка вже чиста!"
+            return "Прихованих файлів не знайдено — папка вже чиста!"
         }
     }
 
@@ -190,9 +190,9 @@ struct L10n {
     var cleaningSubtitle: String {
         switch language {
         case .english:
-            return "Cleaning up via dot_clean system utility"
+            return "Removing hidden files from the folder"
         case .ukrainian:
-            return "Виконується очищення через системну утиліту dot_clean"
+            return "Видалення прихованих файлів із папки"
         }
     }
 
@@ -250,12 +250,4 @@ struct L10n {
         }
     }
 
-    func dotCleanError(_ code: Int32) -> String {
-        switch language {
-        case .english:
-            return "dot_clean finished with error (code \(code))"
-        case .ukrainian:
-            return "dot_clean завершився з помилкою (код \(code))"
-        }
-    }
 }

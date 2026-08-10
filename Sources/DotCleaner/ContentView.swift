@@ -313,15 +313,15 @@ struct ContentView: View {
                 )
 
                 statCard(
-                    title: l10n.cardHiddenDuplicates,
-                    value: "\(stats.dotUnderscoreFiles)",
-                    subtitle: l10n.cardImagesSubtitle(stats.imageDotUnderscoreFiles),
-                    icon: stats.dotUnderscoreFiles > 0 ? "trash.fill" : "checkmark.shield.fill",
-                    color: stats.dotUnderscoreFiles > 0 ? Color.orange : Color.green
+                    title: l10n.cardHiddenFiles,
+                    value: "\(stats.hiddenFiles)",
+                    subtitle: l10n.cardImagesSubtitle(stats.hiddenImageFiles),
+                    icon: stats.hiddenFiles > 0 ? "trash.fill" : "checkmark.shield.fill",
+                    color: stats.hiddenFiles > 0 ? Color.orange : Color.green
                 )
             }
 
-            if stats.dotUnderscoreFiles > 0 {
+            if stats.hiddenFiles > 0 {
                 VStack(spacing: 14) {
                     Text(l10n.confirmPrompt)
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
@@ -339,11 +339,11 @@ struct ContentView: View {
                         .controlSize(.large)
 
                         Button {
-                            startCleaning(beforeCount: stats.dotUnderscoreFiles)
+                            startCleaning(beforeCount: stats.hiddenFiles)
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "sparkles")
-                                Text(l10n.deleteButton(stats.dotUnderscoreFiles))
+                                Text(l10n.deleteButton(stats.hiddenFiles))
                             }
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white)
@@ -505,8 +505,18 @@ struct ContentView: View {
         guard let provider = providers.first else { return false }
 
         provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
-            guard let data = item as? Data,
-                  let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
+            let url: URL?
+            if let itemURL = item as? URL {
+                url = itemURL
+            } else if let itemURL = item as? NSURL {
+                url = itemURL as URL
+            } else if let data = item as? Data {
+                url = URL(dataRepresentation: data, relativeTo: nil)
+            } else {
+                url = nil
+            }
+
+            guard let url else { return }
 
             var isDirectory: ObjCBool = false
             let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
@@ -568,5 +578,4 @@ struct ContentView: View {
     ContentView()
         .environmentObject(LanguageManager.shared)
 }
-
 
