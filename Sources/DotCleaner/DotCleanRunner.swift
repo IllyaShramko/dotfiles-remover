@@ -46,10 +46,8 @@ enum DotCleanRunner {
         while let entryPtr = readdir(dir) {
             var entry = entryPtr.pointee
 
-            let name = withUnsafePointer(to: &entry.d_name) { namePtr in
-                namePtr.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: entry.d_name)) {
-                    String(cString: $0)
-                }
+            let name = withUnsafeBytes(of: entry.d_name) { ptr in
+                String(cString: ptr.baseAddress!.assumingMemoryBound(to: CChar.self))
             }
             guard name != "." && name != ".." else { continue }
 
