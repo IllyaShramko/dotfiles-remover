@@ -3,19 +3,49 @@
     {
       "filename" : "AppIcon_Light.png",
       "idiom" : "mac",
-      "platform" : "macos",
-      "size" : "512x512"
+      "scale" : "1x",
+      "size" : "16x16"
     },
     {
-      "appearances" : [
-        {
-          "appearance" : "luminosity",
-          "value" : "dark"
-        }
-      ],
-      "filename" : "AppIcon_Dark.png",
+      "filename" : "AppIcon_Light.png",
       "idiom" : "mac",
-      "platform" : "macos",
+      "scale" : "2x",
+      "size" : "16x16"
+    },
+    {
+      "filename" : "AppIcon_Light.png",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "32x32"
+    },
+    {
+      "filename" : "AppIcon_Light.png",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "32x32"
+    },
+    {
+      "filename" : "AppIcon_Light.png",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "128x128"
+    },
+    {
+      "filename" : "AppIcon_Light.png",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "128x128"
+    },
+    {
+      "filename" : "AppIcon_Light.png",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "256x256"
+    },
+    {
+      "filename" : "AppIcon_Light.png",
+      "idiom" : "mac",
+      "scale" : "2x",
       "size" : "512x512"
     }
   ],
