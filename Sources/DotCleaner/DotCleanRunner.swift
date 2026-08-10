@@ -22,6 +22,58 @@ enum DotCleanRunner {
         "jpg", "jpeg", "png", "heic", "heif", "webp", "tiff", "tif", "bmp", "gif", "raw", "arw", "cr2", "nef", "dng", "svg"
     ]
 
+    // MARK: - POSIX Directory Listing
+
+    /// Элемент каталога, полученный через POSIX readdir.
+    private struct DirectoryEntry {
+        let name: String
+        let url: URL
+        let isDirectory: Bool
+        let isFile: Bool
+    }
+
+    /// Читает содержимое каталога через POSIX opendir/readdir,
+    /// чтобы гарантированно получить ВСЕ элементы, включая скрытые файлы
+    /// типа «._*», «.DS_Store» и т.д., которые Foundation API может фильтровать
+    /// на файловых системах APFS/HFS+.
+    private static func posixContents(of directory: URL) -> [DirectoryEntry] {
+        let dirPath = directory.path
+        guard let dir = opendir(dirPath) else { return [] }
+        defer { closedir(dir) }
+
+        var entries: [DirectoryEntry] = []
+
+        while let entryPtr = readdir(dir) {
+            var entry = entryPtr.pointee
+
+            let name = withUnsafePointer(to: &entry.d_name) { namePtr in
+                namePtr.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: entry.d_name)) {
+                    String(cString: $0)
+                }
+            }
+            guard name != "." && name != ".." else { continue }
+
+            let childURL = directory.appendingPathComponent(name)
+            var isDir = entry.d_type == DT_DIR
+            var isFile = entry.d_type == DT_REG
+
+            // Для неизвестного типа (DT_UNKNOWN) или симлинков — используем stat,
+            // который следует по симлинкам к реальному файлу/каталогу.
+            if entry.d_type == DT_UNKNOWN || entry.d_type == DT_LNK {
+                var statBuf = stat()
+                if stat(childURL.path, &statBuf) == 0 {
+                    isDir = (statBuf.st_mode & S_IFMT) == S_IFDIR
+                    isFile = (statBuf.st_mode & S_IFMT) == S_IFREG
+                }
+            }
+
+            entries.append(DirectoryEntry(name: name, url: childURL, isDirectory: isDir, isFile: isFile))
+        }
+        return entries
+    }
+
+    // MARK: - Scanning
+
     /// Считает все файлы, картинки и скрытые файлы (начинающиеся с «.») рекурсивно в указанной папке.
     static func scan(folder: URL) -> FolderStats {
         var total = 0
@@ -52,37 +104,26 @@ enum DotCleanRunner {
         imageFiles: inout Int,
         hiddenImage: inout Int
     ) {
-        // contentsOfDirectory с пустыми options явно включает скрытые файлы
-        // и каталоги (в том числе начинающиеся с «.»).
-        guard let children = try? FileManager.default.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey],
-            options: []
-        ) else { return }
+        let entries = posixContents(of: directory)
 
-        for child in children {
-            let values = try? child.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey])
-            let name = child.lastPathComponent
-
-            if values?.isDirectory == true {
-                // Не заходим внутрь скрытых системных каталогов (.Spotlight-V100, .fseventsd и т.п.),
-                // но всё равно считаем саму скрытую папку.
-                if name.hasPrefix(".") {
+        for entry in entries {
+            if entry.isDirectory {
+                if entry.name.hasPrefix(".") {
                     // Скрытая папка — считаем как 1 скрытый элемент (удалится целиком).
                     total += 1
                     hidden += 1
                 } else {
-                    scanDirectory(child, total: &total, hidden: &hidden,
+                    scanDirectory(entry.url, total: &total, hidden: &hidden,
                                   imageFiles: &imageFiles, hiddenImage: &hiddenImage)
                 }
                 continue
             }
 
-            guard values?.isRegularFile == true else { continue }
+            guard entry.isFile else { continue }
             total += 1
 
-            let isHidden = name.hasPrefix(".")
-            let ext = child.pathExtension.lowercased()
+            let isHidden = entry.name.hasPrefix(".")
+            let ext = entry.url.pathExtension.lowercased()
             let isImage = imageExtensions.contains(ext)
 
             if isHidden {
@@ -103,6 +144,8 @@ enum DotCleanRunner {
             }
         }
     }
+
+    // MARK: - Cleaning
 
     /// Удаляет все скрытые файлы и папки (начинающиеся с «.») в указанной папке рекурсивно.
     /// beforeCount — количество скрытых элементов, полученное на этапе сканирования.
@@ -129,30 +172,22 @@ enum DotCleanRunner {
     }
 
     /// Рекурсивно удаляет все скрытые файлы и папки внутри указанного каталога.
+    /// Использует POSIX readdir для гарантированного обнаружения всех скрытых элементов.
     private static func removeHiddenFiles(in folder: URL, removedCount: inout Int, errors: inout [String]) {
-        guard let children = try? FileManager.default.contentsOfDirectory(
-            at: folder,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: []
-        ) else { return }
+        let entries = posixContents(of: folder)
 
-        for child in children {
-            let name = child.lastPathComponent
-
-            if name.hasPrefix(".") {
+        for entry in entries {
+            if entry.name.hasPrefix(".") {
                 // Скрытый элемент (файл или папка) — удаляем целиком.
                 do {
-                    try FileManager.default.removeItem(at: child)
+                    try FileManager.default.removeItem(at: entry.url)
                     removedCount += 1
                 } catch {
-                    errors.append("\(name): \(error.localizedDescription)")
+                    errors.append("\(entry.name): \(error.localizedDescription)")
                 }
-            } else {
+            } else if entry.isDirectory {
                 // Обычная (не скрытая) папка — заходим рекурсивно.
-                let values = try? child.resourceValues(forKeys: [.isDirectoryKey])
-                if values?.isDirectory == true {
-                    removeHiddenFiles(in: child, removedCount: &removedCount, errors: &errors)
-                }
+                removeHiddenFiles(in: entry.url, removedCount: &removedCount, errors: &errors)
             }
         }
     }
