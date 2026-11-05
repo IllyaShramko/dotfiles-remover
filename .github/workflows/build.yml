@@ -31,6 +31,20 @@ jobs:
             CODE_SIGNING_ALLOWED=YES \
             build
 
+      - name: Ensure AppIcon.icns is bundled
+        run: |
+          APP_PATH=$(find build/Build/Products/Release -name "*.app" -maxdepth 1)
+          RESOURCES_DIR="$APP_PATH/Contents/Resources"
+          if [ ! -f "$RESOURCES_DIR/AppIcon.icns" ]; then
+            echo "Generating AppIcon.icns via iconutil..."
+            ICONSET_DIR=$(mktemp -d)/AppIcon.iconset
+            mkdir -p "$ICONSET_DIR"
+            cp Sources/DotCleaner/Assets.xcassets/AppIcon.appiconset/icon_*.png "$ICONSET_DIR/"
+            rm -f "$ICONSET_DIR"/icon_dark_*.png
+            iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns"
+          fi
+          ls -la "$RESOURCES_DIR"
+
       - name: Ad-hoc code sign app
         run: |
           APP_PATH=$(find build/Build/Products/Release -name "*.app" -maxdepth 1)

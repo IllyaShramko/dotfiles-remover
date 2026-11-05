@@ -241,6 +241,24 @@ struct L10n {
         }
     }
 
+    var openNextFolderButton: String {
+        switch language {
+        case .english:
+            return "Open Next Folder"
+        case .ukrainian:
+            return "Відкрити наступну папку"
+        }
+    }
+
+    var closeAppButton: String {
+        switch language {
+        case .english:
+            return "Close App"
+        case .ukrainian:
+            return "Закрити застосунок"
+        }
+    }
+
     var menuLanguage: String {
         switch language {
         case .english:

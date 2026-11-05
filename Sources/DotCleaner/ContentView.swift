@@ -7,11 +7,12 @@ enum Stage: Equatable {
     case scanning           // идёт подсчёт файлов
     case confirming(FolderStats) // показана статистика, ждём решения пользователя
     case cleaning           // идёт выполнение dot_clean
-    case done               // готово (кнопка "Готово" вернёт на первый этап)
+    case done               // готово (кнопки выбора следующей папки или закрытия приложения)
 }
 
 struct ContentView: View {
     @EnvironmentObject private var languageManager: LanguageManager
+    @Environment(\.colorScheme) private var colorScheme
     @State private var stage: Stage = .selecting
     @State private var isDropTargeted = false
     @State private var isHoveringDropZone = false
@@ -127,32 +128,12 @@ struct ContentView: View {
             .padding(.top, -10)
             .padding(.bottom, -15)
 
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.accentColor.opacity(0.2), Color.purple.opacity(0.15)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 56, height: 56)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
-                    )
-                    .shadow(color: Color.accentColor.opacity(0.15), radius: 8, x: 0, y: 4)
-
-                Image(systemName: "wand.and.stars")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.accentColor, Color.purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
+            Image(colorScheme == .dark ? "LogoDark" : "LogoLight")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 56, height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shadow(color: Color.accentColor.opacity(0.15), radius: 8, x: 0, y: 4)
 
             VStack(spacing: 4) {
                 Text("DotCleaner")
@@ -378,11 +359,7 @@ struct ContentView: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.secondary)
 
-                    Button(l10n.backButton) {
-                        cancelToSelecting()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    actionButtonsRow
                 }
             }
         }
@@ -493,16 +470,58 @@ struct ContentView: View {
                 }
             }
 
+            actionButtonsRow
+        }
+    }
+
+    private var actionButtonsRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "xmark.circle")
+                    Text(l10n.closeAppButton)
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.secondary.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+
             Button {
                 cancelToSelecting()
             } label: {
-                Text(l10n.doneButton)
-                    .font(.system(size: 13, weight: .semibold))
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 8)
+                HStack(spacing: 6) {
+                    Image(systemName: "folder.badge.plus")
+                    Text(l10n.openNextFolderButton)
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.85)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .shadow(color: Color.accentColor.opacity(0.25), radius: 5, x: 0, y: 2)
+                )
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .buttonStyle(.plain)
         }
     }
 
@@ -584,4 +603,3 @@ struct ContentView: View {
     ContentView()
         .environmentObject(LanguageManager.shared)
 }
-
